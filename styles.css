@@ -1,0 +1,256 @@
+/* ============================================================
+   MOSAM MASTANA — Neo-Brutalism + Minimalist design system
+   Bold borders · Flat colours · Hard shadows · Generous whitespace
+   ============================================================ */
+
+:root {
+  --bg: #faf7f0;          /* off-white / warm white */
+  --ink: #111111;         /* primary black */
+  --surface: #ffffff;     /* secondary white */
+  --accent: #ffd400;      /* bright yellow */
+  --blue: #4d7cfe;        /* limited blue accent */
+
+  /* AQI severity colours — visually distinguishable */
+  --aqi-good: #2e9e4f;
+  --aqi-satisfactory: #a6c72e;
+  --aqi-moderate: #f2c400;
+  --aqi-poor: #f97316;
+  --aqi-very-poor: #dc2626;
+  --aqi-severe: #6b0f1a;
+
+  --border: 3px solid var(--ink);
+  --shadow: 6px 6px 0 var(--ink);
+  --shadow-sm: 4px 4px 0 var(--ink);
+  --radius: 2px;           /* hard-edged, no overly rounded cards */
+  --font: 'Space Grotesk', 'Segoe UI', 'Arial Black', Arial, sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.4;
+}
+
+/* ---------- Top bar ---------- */
+.topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: var(--border);
+  background: var(--surface);
+}
+
+.brand { display: flex; align-items: center; gap: 0.75rem; }
+
+.brand-badge {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  background: var(--accent);
+  border: var(--border);
+  box-shadow: var(--shadow-sm);
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+
+.brand h1 { font-size: 1.4rem; font-weight: 800; letter-spacing: 0.02em; }
+.tagline { font-size: 0.8rem; font-weight: 600; opacity: 0.75; }
+
+/* ---------- Search ---------- */
+.search { display: flex; gap: 0.5rem; flex: 1 1 320px; max-width: 480px; }
+
+#search-input {
+  flex: 1;
+  padding: 0.7rem 0.9rem;
+  font-family: var(--font);
+  font-size: 0.95rem;
+  font-weight: 600;
+  border: var(--border);
+  background: var(--bg);
+  min-width: 0;
+}
+#search-input:focus { outline: 3px solid var(--blue); outline-offset: 2px; }
+
+.btn {
+  padding: 0.7rem 1.1rem;
+  font-family: var(--font);
+  font-weight: 800;
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+  border: var(--border);
+  background: var(--surface);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.05s ease, box-shadow 0.05s ease;
+}
+.btn:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--ink); }
+.btn-accent { background: var(--accent); }
+.btn-accent:disabled { opacity: 0.6; cursor: wait; }
+
+/* ---------- Layout ---------- */
+.dashboard {
+  width: min(1040px, 100%);
+  margin: 0 auto;
+  padding: 1.5rem 1rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+/* ---------- Cards ---------- */
+.card {
+  background: var(--surface);
+  border: var(--border);
+  box-shadow: var(--shadow);
+  padding: 1.25rem;
+}
+
+.card-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.card-label { font-size: 0.75rem; font-weight: 800; letter-spacing: 0.08em; }
+
+.badge {
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 0.25rem 0.5rem;
+  border: 2px solid var(--ink);
+  background: var(--bg);
+  white-space: nowrap;
+}
+
+/* ---------- Alert banner (most prominent element) ---------- */
+.alert-card { border-width: 4px; box-shadow: 8px 8px 0 var(--ink); }
+
+.alert-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.6rem;
+}
+
+.alert-level {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 0.3rem 0.6rem;
+  border: 2px solid var(--ink);
+  background: var(--accent);
+}
+
+.alert-category { font-size: 0.9rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; }
+
+.alert-message {
+  font-size: clamp(1.25rem, 3vw, 1.75rem);
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+/* ---------- Status card ---------- */
+.status-card { background: var(--accent); font-weight: 700; }
+
+/* ---------- AQI card ---------- */
+.aqi-value-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+
+.aqi-value {
+  font-size: clamp(3rem, 8vw, 4.5rem);
+  font-weight: 800;
+  line-height: 1;
+  padding: 0.15rem 0.5rem;
+  border: var(--border);
+  box-shadow: var(--shadow-sm);
+  background: var(--bg);
+}
+
+.aqi-category { font-size: 1.05rem; font-weight: 800; text-transform: uppercase; }
+
+.aqi-scale { display: flex; gap: 4px; margin-bottom: 1rem; }
+.seg { height: 10px; flex: 1; border: 2px solid var(--ink); }
+.seg-1 { background: var(--aqi-good); }
+.seg-2 { background: var(--aqi-satisfactory); }
+.seg-3 { background: var(--aqi-moderate); }
+.seg-4 { background: var(--aqi-poor); }
+.seg-5 { background: var(--aqi-very-poor); }
+.seg-6 { background: var(--aqi-severe); }
+.seg.active { outline: 3px solid var(--ink); outline-offset: 1px; }
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.metric {
+  border: 2px solid var(--ink);
+  background: var(--bg);
+  padding: 0.6rem 0.7rem;
+}
+.metric dt { font-size: 0.68rem; font-weight: 800; letter-spacing: 0.07em; opacity: 0.7; }
+.metric dd { font-size: 0.95rem; font-weight: 800; margin-top: 0.15rem; }
+
+.updated { font-size: 0.78rem; font-weight: 600; opacity: 0.75; }
+
+/* ---------- Weather card ---------- */
+.weather-main { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.25rem; }
+
+.weather-icon { image-rendering: pixelated; }
+
+.temp { font-size: clamp(3rem, 8vw, 4.5rem); font-weight: 800; line-height: 1; }
+.temp-unit { font-size: 1.4rem; font-weight: 800; align-self: flex-start; margin-top: 0.6rem; }
+
+.condition { font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem; }
+
+/* ---------- Footer ---------- */
+.footer {
+  margin-top: auto;
+  border-top: var(--border);
+  background: var(--surface);
+  padding: 0.9rem 1.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.hidden { display: none !important; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 760px) {
+  .grid { grid-template-columns: 1fr; }
+  .alert-card, .aqi-card { order: -1; }
+  .topbar { padding: 1rem; }
+  .search { max-width: none; }
+}
+
+@media (max-width: 420px) {
+  .brand h1 { font-size: 1.1rem; }
+  .brand-badge { width: 42px; height: 42px; font-size: 0.9rem; }
+  .aqi-value-row { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+}
+
+/* ---------- Accessibility ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .btn { transition: none; }
+}
