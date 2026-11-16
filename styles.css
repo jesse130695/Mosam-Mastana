@@ -1,5 +1,5 @@
 /* ============================================================
-   MOSAM MASTANA — Neo-Brutalism + Minimalist design system
+   MOSAM MASTANA — Neo-Brutalism + Minimalist design system (v1.2)
    Bold borders · Flat colours · Hard shadows · Generous whitespace
    ============================================================ */
 
@@ -8,9 +8,11 @@
   --ink: #111111;         /* primary black */
   --surface: #ffffff;     /* secondary white */
   --accent: #ffd400;      /* bright yellow */
-  --blue: #4d7cfe;        /* limited blue accent */
+  --blue: #4d7cfe;        /* limited blue accent (rain / forecast) */
+  --cold: #7cc6f7;        /* cool-toned cold commentary accent */
+  --warning: #b91c1c;     /* official warnings — high contrast, serious */
 
-  /* AQI severity colours — visually distinguishable */
+  /* AQI severity colours */
   --aqi-good: #2e9e4f;
   --aqi-satisfactory: #a6c72e;
   --aqi-moderate: #f2c400;
@@ -21,7 +23,6 @@
   --border: 3px solid var(--ink);
   --shadow: 6px 6px 0 var(--ink);
   --shadow-sm: 4px 4px 0 var(--ink);
-  --radius: 2px;           /* hard-edged, no overly rounded cards */
   --font: 'Space Grotesk', 'Segoe UI', 'Arial Black', Arial, sans-serif;
 }
 
@@ -66,20 +67,77 @@ body {
 .brand h1 { font-size: 1.4rem; font-weight: 800; letter-spacing: 0.02em; }
 .tagline { font-size: 0.8rem; font-weight: 600; opacity: 0.75; }
 
-/* ---------- Search ---------- */
+.topbar-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
+
+/* Language toggle */
+.lang-toggle { display: flex; border: var(--border); box-shadow: var(--shadow-sm); background: var(--surface); }
+.lang-btn {
+  padding: 0.55rem 0.8rem;
+  font-family: var(--font);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  background: var(--surface);
+  border: none;
+  cursor: pointer;
+}
+.lang-btn.active { background: var(--ink); color: var(--surface); }
+
+/* ---------- Search & suggestions ---------- */
 .search { display: flex; gap: 0.5rem; flex: 1 1 320px; max-width: 480px; }
+.search-wrap { position: relative; flex: 1; min-width: 0; }
 
 #search-input {
-  flex: 1;
+  width: 100%;
   padding: 0.7rem 0.9rem;
   font-family: var(--font);
   font-size: 0.95rem;
   font-weight: 600;
   border: var(--border);
   background: var(--bg);
-  min-width: 0;
 }
 #search-input:focus { outline: 3px solid var(--blue); outline-offset: 2px; }
+
+.suggestions {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  max-height: 380px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: var(--border);
+  box-shadow: var(--shadow);
+}
+
+.suggestions .group-label {
+  padding: 0.45rem 0.75rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  background: var(--ink);
+  color: var(--surface);
+}
+.suggestions .group-label.india { background: #1a7a37; }
+.suggestions .group-label.global { background: #444; }
+
+.suggestion {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  text-align: left;
+  font-family: var(--font);
+  border: none;
+  border-bottom: 2px solid #eee;
+  background: var(--surface);
+  cursor: pointer;
+}
+.suggestion:hover { background: var(--accent); }
+.suggestion .s-name { font-weight: 800; font-size: 0.95rem; }
+.suggestion .s-context { font-size: 0.75rem; font-weight: 600; opacity: 0.7; }
+.suggestions .empty { padding: 0.75rem; font-size: 0.85rem; font-weight: 600; }
 
 .btn {
   padding: 0.7rem 1.1rem;
@@ -96,10 +154,55 @@ body {
 .btn:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--ink); }
 .btn-accent { background: var(--accent); }
 .btn-accent:disabled { opacity: 0.6; cursor: wait; }
+.btn-outline { background: var(--surface); }
+.btn-sm { padding: 0.45rem 0.7rem; font-size: 0.75rem; box-shadow: 2px 2px 0 var(--ink); }
+
+/* ---------- Popular strip ---------- */
+.popular-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  border-bottom: var(--border);
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.strip-inner {
+  display: flex;
+  gap: 0.5rem;
+  flex: 1;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+
+.chip {
+  flex: 0 0 auto;
+  padding: 0.45rem 0.8rem;
+  font-family: var(--font);
+  font-size: 0.82rem;
+  font-weight: 800;
+  border: 2px solid var(--ink);
+  background: var(--surface);
+  cursor: pointer;
+  box-shadow: 2px 2px 0 var(--ink);
+}
+.chip:hover { background: var(--accent); }
+.chip.active { background: var(--ink); color: var(--surface); }
+.chip-zone {
+  flex: 0 0 auto;
+  align-self: center;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  opacity: 0.6;
+  padding-left: 0.5rem;
+}
 
 /* ---------- Layout ---------- */
 .dashboard {
-  width: min(1040px, 100%);
+  width: min(1120px, 100%);
   margin: 0 auto;
   padding: 1.5rem 1rem 2rem;
   display: flex;
@@ -107,12 +210,8 @@ body {
   gap: 1.25rem;
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.25rem;
-  align-items: start;
-}
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; align-items: start; }
+.grid-col { display: flex; flex-direction: column; gap: 1.25rem; }
 
 /* ---------- Cards ---------- */
 .card {
@@ -140,16 +239,33 @@ body {
   background: var(--bg);
   white-space: nowrap;
 }
+.badge-warning { background: var(--warning); color: #fff; border-color: var(--ink); }
 
-/* ---------- Alert banner (most prominent element) ---------- */
+/* ---------- Official warning card (serious, high contrast) ---------- */
+.warning-card { border-width: 4px; box-shadow: 8px 8px 0 var(--ink); background: #fff; }
+.warning-item {
+  border: 3px solid var(--ink);
+  border-left: 10px solid var(--warning);
+  background: #fff4f4;
+  padding: 0.9rem 1rem;
+  margin-bottom: 0.75rem;
+}
+.warning-item:last-child { margin-bottom: 0; }
+.warning-event { font-size: 1.15rem; font-weight: 800; }
+.warning-meta { font-size: 0.8rem; font-weight: 600; margin-top: 0.35rem; }
+.warning-instruction { font-size: 0.9rem; font-weight: 700; margin-top: 0.5rem; }
+
+/* ---------- Forecast-based storm indicator (distinct from official) ---------- */
+.storm-card { border-left: 10px solid var(--blue); }
+.storm-item { font-size: 0.95rem; font-weight: 700; padding: 0.4rem 0; border-bottom: 2px dashed #ddd; }
+.storm-item:last-child { border-bottom: none; }
+.storm-note { font-size: 0.72rem; font-weight: 600; opacity: 0.7; margin-top: 0.5rem; }
+.storm-unavailable { font-size: 0.9rem; font-weight: 600; }
+
+/* ---------- Alert banner (pollution) ---------- */
 .alert-card { border-width: 4px; box-shadow: 8px 8px 0 var(--ink); }
 
-.alert-head {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 0.6rem;
-}
+.alert-head { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.6rem; }
 
 .alert-level {
   font-size: 0.75rem;
@@ -168,6 +284,11 @@ body {
   letter-spacing: 0.01em;
 }
 
+/* ---------- Cold card ---------- */
+.cold-card { border-left: 10px solid var(--cold); }
+.cold-message { font-size: clamp(1.15rem, 2.5vw, 1.5rem); font-weight: 800; }
+.cold-temp { font-size: 0.9rem; font-weight: 700; margin: 0.5rem 0 0.75rem; }
+
 /* ---------- Status card ---------- */
 .status-card { background: var(--accent); font-weight: 700; }
 
@@ -175,7 +296,7 @@ body {
 .aqi-value-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
 
 .aqi-value {
-  font-size: clamp(3rem, 8vw, 4.5rem);
+  font-size: clamp(2.6rem, 7vw, 4rem);
   font-weight: 800;
   line-height: 1;
   padding: 0.15rem 0.5rem;
@@ -198,7 +319,7 @@ body {
 
 .metrics {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(105px, 1fr));
   gap: 0.75rem;
   margin-bottom: 0.75rem;
 }
@@ -213,15 +334,84 @@ body {
 
 .updated { font-size: 0.78rem; font-weight: 600; opacity: 0.75; }
 
+/* ---------- Rain card ---------- */
+.rain-card { border-left: 10px solid var(--blue); }
+.rain-message { font-size: clamp(1.05rem, 2vw, 1.25rem); font-weight: 800; margin-bottom: 0.9rem; }
+
+.rain-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 90px;
+  padding: 0.5rem 0 0;
+  margin-bottom: 0.9rem;
+  overflow-x: auto;
+}
+.rain-bar { flex: 0 0 26px; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; }
+.rain-bar .bar {
+  width: 100%;
+  background: var(--blue);
+  border: 2px solid var(--ink);
+  min-height: 3px;
+}
+.rain-bar.next .bar { background: var(--accent); }
+.rain-bar .pct { font-size: 0.55rem; font-weight: 800; margin-bottom: 2px; }
+.rain-bar .hr { font-size: 0.55rem; font-weight: 700; margin-top: 2px; opacity: 0.7; white-space: nowrap; }
+
+/* ---------- Daily outlook ---------- */
+.daily-list { display: flex; gap: 0.6rem; overflow-x: auto; padding-bottom: 4px; }
+.daily-item {
+  flex: 0 0 auto;
+  min-width: 105px;
+  border: 2px solid var(--ink);
+  background: var(--bg);
+  padding: 0.6rem 0.7rem;
+  text-align: center;
+}
+.daily-item .d-name { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.05em; }
+.daily-item img { display: block; margin: 0.25rem auto; }
+.daily-item .d-cond { font-size: 0.65rem; font-weight: 700; opacity: 0.8; min-height: 2.2em; }
+.daily-item .d-temps { font-size: 0.85rem; font-weight: 800; margin-top: 0.3rem; }
+.daily-item .d-rain { font-size: 0.7rem; font-weight: 700; color: #1d4ed8; }
+
 /* ---------- Weather card ---------- */
 .weather-main { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.25rem; }
-
 .weather-icon { image-rendering: pixelated; }
 
-.temp { font-size: clamp(3rem, 8vw, 4.5rem); font-weight: 800; line-height: 1; }
+.temp { font-size: clamp(2.6rem, 7vw, 4rem); font-weight: 800; line-height: 1; }
 .temp-unit { font-size: 1.4rem; font-weight: 800; align-self: flex-start; margin-top: 0.6rem; }
 
 .condition { font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem; }
+
+/* ---------- Modal (States & UTs) ---------- */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  background: rgba(17, 17, 17, 0.55);
+  padding: 1rem;
+}
+.modal-box { width: min(680px, 100%); max-height: 85vh; overflow-y: auto; }
+
+.states-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.6rem; }
+.state-chip {
+  padding: 0.6rem 0.7rem;
+  font-family: var(--font);
+  font-size: 0.8rem;
+  font-weight: 800;
+  border: 2px solid var(--ink);
+  background: var(--bg);
+  cursor: pointer;
+  text-align: left;
+}
+.state-chip:hover { background: var(--accent); }
+
+.state-places-list { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.state-places-list .chip { font-size: 0.85rem; }
+.state-places .search { margin-bottom: 0.9rem; max-width: none; }
+.state-empty { font-size: 0.85rem; font-weight: 600; opacity: 0.75; padding: 0.5rem 0; }
 
 /* ---------- Footer ---------- */
 .footer {
@@ -237,10 +427,10 @@ body {
 .hidden { display: none !important; }
 
 /* ---------- Responsive ---------- */
-@media (max-width: 760px) {
+@media (max-width: 860px) {
   .grid { grid-template-columns: 1fr; }
-  .alert-card, .aqi-card { order: -1; }
   .topbar { padding: 1rem; }
+  .popular-strip { padding: 0.75rem 1rem; }
   .search { max-width: none; }
 }
 
