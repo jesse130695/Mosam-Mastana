@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Mosam Mastana — real-time weather, Indian AQI (CPCB) and pollution alerts in one bold dashboard." />
-  <title>Mosam Mastana — Weather & AQI Dashboard</title>
-  <link rel="preconnect" href="https://api.weatherapi.com" />
+  <meta name="description" content="Mosam Mastana — real-time weather, Indian AQI (CPCB), cold commentary, rain forecast and severe-weather alerts in one bold dashboard." />
+  <title>Mosam Mastana — Weather, AQI & Forecast Dashboard</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -17,20 +16,53 @@
         <p class="tagline">Mausam bhi, hawa bhi — ek jagah.</p>
       </div>
     </div>
-    <form id="search-form" class="search" role="search" autocomplete="off">
-      <input
-        id="search-input"
-        type="text"
-        placeholder="Search city… (e.g. Delhi)"
-        aria-label="Search city"
-        maxlength="80"
-      />
-      <button type="submit" class="btn btn-accent">SEARCH</button>
-    </form>
+    <div class="topbar-actions">
+      <div class="lang-toggle" role="group" aria-label="Commentary language">
+        <button id="lang-hi" class="lang-btn active" type="button">HINGLISH</button>
+        <button id="lang-en" class="lang-btn" type="button">ENGLISH</button>
+      </div>
+      <form id="search-form" class="search" role="search" autocomplete="off">
+        <div class="search-wrap">
+          <input
+            id="search-input"
+            type="text"
+            placeholder="Search city, town or village…"
+            aria-label="Search location"
+            maxlength="80"
+          />
+          <div id="suggestions" class="suggestions hidden" role="listbox" aria-label="Location suggestions"></div>
+        </div>
+        <button type="submit" class="btn btn-accent">SEARCH</button>
+      </form>
+    </div>
   </header>
 
+  <!-- Popular Indian locations strip -->
+  <section class="popular-strip" aria-label="Popular Indian locations">
+    <div class="strip-inner" id="popular-strip"></div>
+    <button id="open-states" class="btn btn-outline" type="button">STATES &amp; UTs</button>
+  </section>
+
   <main class="dashboard">
-    <!-- Alert banner: strongest visual prominence -->
+    <!-- Official severe-weather warnings: highest visual priority -->
+    <section id="warning-card" class="card warning-card hidden" aria-live="assertive">
+      <div class="card-label-row">
+        <span class="card-label">OFFICIAL WEATHER WARNING</span>
+        <span class="badge badge-warning">OFFICIAL</span>
+      </div>
+      <div id="warning-list"></div>
+    </section>
+
+    <!-- Forecast-based storm indicators (distinct from official warnings) -->
+    <section id="storm-indicator-card" class="card storm-card hidden" aria-live="polite">
+      <div class="card-label-row">
+        <span class="card-label">STORM / SEVERE WEATHER INDICATOR</span>
+        <span class="badge">FORECAST-BASED</span>
+      </div>
+      <div id="storm-indicator-list"></div>
+    </section>
+
+    <!-- Pollution alert banner -->
     <section id="alert-card" class="card alert-card hidden" aria-live="polite">
       <div class="alert-head">
         <span id="alert-level" class="alert-level"></span>
@@ -39,65 +71,125 @@
       <p id="alert-message" class="alert-message"></p>
     </section>
 
+    <!-- Cold/winter commentary -->
+    <section id="cold-card" class="card cold-card hidden" aria-live="polite">
+      <div class="card-label-row">
+        <span class="card-label">COLD / WINTER COMMENTARY</span>
+        <span id="cold-measure" class="badge"></span>
+      </div>
+      <p id="cold-message" class="cold-message"></p>
+      <p class="cold-temp"><span id="cold-value">—</span></p>
+      <button id="cold-translate" class="btn btn-outline btn-sm" type="button">Translate to English</button>
+    </section>
+
     <!-- Status / error card -->
     <section id="status-card" class="card status-card hidden" aria-live="polite">
       <p id="status-message"></p>
     </section>
 
     <div class="grid">
-      <!-- AQI card -->
-      <section id="aqi-card" class="card aqi-card hidden" aria-live="polite">
-        <div class="card-label-row">
-          <span class="card-label">AIR QUALITY (INDIA — CPCB)</span>
-          <span id="aqi-standard-badge" class="badge">CPCB AQI</span>
-        </div>
-        <div class="aqi-value-row">
-          <span id="aqi-value" class="aqi-value">—</span>
-          <span id="aqi-category" class="aqi-category"></span>
-        </div>
-        <div class="aqi-scale" aria-hidden="true">
-          <span class="seg seg-1"></span><span class="seg seg-2"></span><span class="seg seg-3"></span><span class="seg seg-4"></span><span class="seg seg-5"></span><span class="seg seg-6"></span>
-        </div>
-        <dl class="metrics">
-          <div class="metric"><dt>PM2.5</dt><dd id="aqi-pm25">— µg/m³</dd></div>
-          <div class="metric"><dt>PM10</dt><dd id="aqi-pm10">— µg/m³</dd></div>
-          <div class="metric"><dt>DOMINANT</dt><dd id="aqi-dominant">—</dd></div>
-        </dl>
-        <p class="updated"><span>Updated:</span> <span id="aqi-updated">—</span></p>
-      </section>
+      <div class="grid-col">
+        <!-- AQI card -->
+        <section id="aqi-card" class="card aqi-card hidden" aria-live="polite">
+          <div class="card-label-row">
+            <span class="card-label">AIR QUALITY</span>
+            <span id="aqi-standard-badge" class="badge"></span>
+          </div>
+          <div class="aqi-value-row">
+            <span id="aqi-value" class="aqi-value">—</span>
+            <span id="aqi-category" class="aqi-category"></span>
+          </div>
+          <div id="aqi-scale" class="aqi-scale" aria-hidden="true">
+            <span class="seg seg-1"></span><span class="seg seg-2"></span><span class="seg seg-3"></span><span class="seg seg-4"></span><span class="seg seg-5"></span><span class="seg seg-6"></span>
+          </div>
+          <dl class="metrics">
+            <div class="metric"><dt>PM2.5</dt><dd id="aqi-pm25">—</dd></div>
+            <div class="metric"><dt>PM10</dt><dd id="aqi-pm10">—</dd></div>
+            <div class="metric" id="aqi-dominant-wrap"><dt>DOMINANT</dt><dd id="aqi-dominant">—</dd></div>
+          </dl>
+          <p class="updated"><span>Updated:</span> <span id="aqi-updated">—</span></p>
+        </section>
 
-      <!-- Weather card -->
-      <section id="weather-card" class="card weather-card hidden" aria-live="polite">
-        <div class="card-label-row">
-          <span class="card-label">CURRENT WEATHER</span>
-          <span id="weather-location" class="badge">—</span>
-        </div>
-        <div class="weather-main">
-          <img id="weather-icon" class="weather-icon" alt="" src="" width="72" height="72" />
-          <span id="weather-temp" class="temp">—</span>
-          <span class="temp-unit">°C</span>
-        </div>
-        <p id="weather-condition" class="condition">—</p>
-        <dl class="metrics">
-          <div class="metric"><dt>FEELS LIKE</dt><dd id="weather-feels">—</dd></div>
-          <div class="metric"><dt>HUMIDITY</dt><dd id="weather-humidity">—</dd></div>
-          <div class="metric"><dt>WIND</dt><dd id="weather-wind">—</dd></div>
-          <div class="metric"><dt>UV INDEX</dt><dd id="weather-uv">—</dd></div>
-        </dl>
-      </section>
+        <!-- Rain forecast card -->
+        <section id="rain-card" class="card rain-card hidden" aria-live="polite">
+          <div class="card-label-row">
+            <span class="card-label">RAIN OUTLOOK — NEXT 24 HOURS</span>
+            <span id="rain-issue" class="badge"></span>
+          </div>
+          <p id="rain-message" class="rain-message"></p>
+          <div id="rain-bars" class="rain-bars"></div>
+          <dl class="metrics">
+            <div class="metric"><dt>NEXT RAIN</dt><dd id="rain-next">—</dd></div>
+            <div class="metric"><dt>CHANCE</dt><dd id="rain-chance">—</dd></div>
+            <div class="metric"><dt>AMOUNT</dt><dd id="rain-amount">—</dd></div>
+          </dl>
+        </section>
+
+        <!-- Daily outlook -->
+        <section id="daily-card" class="card daily-card hidden" aria-live="polite">
+          <div class="card-label-row">
+            <span class="card-label">DAILY OUTLOOK</span>
+            <span class="badge">FORECAST</span>
+          </div>
+          <div id="daily-list" class="daily-list"></div>
+        </section>
+      </div>
+
+      <div class="grid-col">
+        <!-- Weather card -->
+        <section id="weather-card" class="card weather-card hidden" aria-live="polite">
+          <div class="card-label-row">
+            <span class="card-label">CURRENT WEATHER</span>
+            <span id="weather-location" class="badge">—</span>
+          </div>
+          <div class="weather-main">
+            <img id="weather-icon" class="weather-icon" alt="" src="" width="72" height="72" />
+            <span id="weather-temp" class="temp">—</span>
+            <span class="temp-unit">°C</span>
+          </div>
+          <p id="weather-condition" class="condition">—</p>
+          <dl class="metrics">
+            <div class="metric"><dt>FEELS LIKE</dt><dd id="weather-feels">—</dd></div>
+            <div class="metric"><dt>HUMIDITY</dt><dd id="weather-humidity">—</dd></div>
+            <div class="metric"><dt>WIND</dt><dd id="weather-wind">—</dd></div>
+            <div class="metric"><dt>GUST</dt><dd id="weather-gust">—</dd></div>
+            <div class="metric"><dt>UV INDEX</dt><dd id="weather-uv">—</dd></div>
+            <div class="metric"><dt>VISIBILITY</dt><dd id="weather-vis">—</dd></div>
+          </dl>
+          <p class="updated"><span>Observed:</span> <span id="weather-updated">—</span></p>
+        </section>
+      </div>
     </div>
   </main>
 
+  <!-- State / UT browse modal -->
+  <div id="states-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Browse Indian states and Union Territories">
+    <div class="modal-box card">
+      <div class="card-label-row">
+        <span class="card-label" id="states-title">SELECT A STATE OR UNION TERRITORY</span>
+        <button id="close-states" class="btn btn-outline btn-sm" type="button">CLOSE</button>
+      </div>
+      <div id="states-grid" class="states-grid"></div>
+      <div id="state-places" class="state-places hidden">
+        <div class="card-label-row">
+          <span class="card-label" id="state-places-title"></span>
+          <button id="back-states" class="btn btn-outline btn-sm" type="button">← BACK</button>
+        </div>
+        <div id="state-places-list" class="state-places-list"></div>
+      </div>
+    </div>
+  </div>
+
   <footer class="footer">
-    <p>Indian AQI computed from pollutant concentrations using CPCB breakpoints · Data: WeatherAPI.com · Built as a prototype.</p>
+    <p>Indian AQI computed via CPCB breakpoints · Forecast &amp; alerts: WeatherAPI.com · Forecasts are predictions, not guarantees. Official warnings always take priority.</p>
   </footer>
 
   <noscript>
     <div class="card status-card shown" style="margin:1rem">
-      <p>Mosam Mastana needs JavaScript enabled to fetch live weather and AQI data.</p>
+      <p>Mosam Mastana needs JavaScript enabled to fetch live weather data.</p>
     </div>
   </noscript>
 
-  <script src="app.js"></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>
