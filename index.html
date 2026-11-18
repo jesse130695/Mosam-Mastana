@@ -3,26 +3,39 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Mosam Mastana — real-time weather, Indian AQI (CPCB), cold commentary, rain forecast and severe-weather alerts in one bold dashboard." />
+  <meta name="description" content="Mosam Mastana — real-time weather, Indian AQI (CPCB), cold commentary, rain forecast and severe-weather alerts in one calm, editorial dashboard." />
   <title>Mosam Mastana — Weather, AQI & Forecast Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Inter:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;600&display=swap"
+    rel="stylesheet"
+  />
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body>
+<body data-mode="clear">
   <header class="topbar">
     <div class="brand">
-      <span class="brand-badge">M³</span>
+      <svg class="brand-mark" viewBox="0 0 24 24" width="30" height="30" aria-hidden="true">
+        <path d="M12 3.2c3.1 3.4 5.6 6.3 5.6 9.4a5.6 5.6 0 1 1-11.2 0c0-3.1 2.5-6 5.6-9.4Z" fill="var(--brand)"/>
+        <path d="M9.4 13.2a2.8 2.8 0 0 0 2.4 3.2" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+      </svg>
       <div>
-        <h1>MOSAM MASTANA</h1>
+        <h1 class="wordmark">Mosam Mastana</h1>
         <p class="tagline">Mausam bhi, hawa bhi — ek jagah.</p>
       </div>
     </div>
     <div class="topbar-actions">
       <div class="lang-toggle" role="group" aria-label="Commentary language">
-        <button id="lang-hi" class="lang-btn active" type="button">HINGLISH</button>
-        <button id="lang-en" class="lang-btn" type="button">ENGLISH</button>
+        <button id="lang-hi" class="lang-btn active" type="button">Hinglish</button>
+        <button id="lang-en" class="lang-btn" type="button">English</button>
       </div>
       <form id="search-form" class="search" role="search" autocomplete="off">
         <div class="search-wrap">
+          <svg class="search-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <path d="M12 21s-7-5.6-7-11a7 7 0 1 1 14 0c0 5.4-7 11-7 11Z" fill="none" stroke="currentColor" stroke-width="1.8"/>
+            <circle cx="12" cy="10" r="2.6" fill="none" stroke="currentColor" stroke-width="1.8"/>
+          </svg>
           <input
             id="search-input"
             type="text"
@@ -32,7 +45,7 @@
           />
           <div id="suggestions" class="suggestions hidden" role="listbox" aria-label="Location suggestions"></div>
         </div>
-        <button type="submit" class="btn btn-accent">SEARCH</button>
+        <button type="submit" class="btn btn-primary">Search</button>
       </form>
     </div>
   </header>
@@ -40,46 +53,20 @@
   <!-- Popular Indian locations strip -->
   <section class="popular-strip" aria-label="Popular Indian locations">
     <div class="strip-inner" id="popular-strip"></div>
-    <button id="open-states" class="btn btn-outline" type="button">STATES &amp; UTs</button>
+    <button id="open-states" class="btn btn-ghost" type="button">States &amp; UTs</button>
   </section>
 
   <main class="dashboard">
-    <!-- Official severe-weather warnings: highest visual priority -->
+    <!-- Official severe-weather warnings: highest priority -->
     <section id="warning-card" class="card warning-card hidden" aria-live="assertive">
-      <div class="card-label-row">
-        <span class="card-label">OFFICIAL WEATHER WARNING</span>
-        <span class="badge badge-warning">OFFICIAL</span>
+      <div class="card-head">
+        <span class="card-title warning-title">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 3 2.5 20h19L12 3Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 9.5v4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="16.8" r="1.1" fill="currentColor"/></svg>
+          Official weather warning
+        </span>
+        <span class="badge badge-official">Official</span>
       </div>
       <div id="warning-list"></div>
-    </section>
-
-    <!-- Forecast-based storm indicators (distinct from official warnings) -->
-    <section id="storm-indicator-card" class="card storm-card hidden" aria-live="polite">
-      <div class="card-label-row">
-        <span class="card-label">STORM / SEVERE WEATHER INDICATOR</span>
-        <span class="badge">FORECAST-BASED</span>
-      </div>
-      <div id="storm-indicator-list"></div>
-    </section>
-
-    <!-- Pollution alert banner -->
-    <section id="alert-card" class="card alert-card hidden" aria-live="polite">
-      <div class="alert-head">
-        <span id="alert-level" class="alert-level"></span>
-        <span id="alert-category" class="alert-category"></span>
-      </div>
-      <p id="alert-message" class="alert-message"></p>
-    </section>
-
-    <!-- Cold/winter commentary -->
-    <section id="cold-card" class="card cold-card hidden" aria-live="polite">
-      <div class="card-label-row">
-        <span class="card-label">COLD / WINTER COMMENTARY</span>
-        <span id="cold-measure" class="badge"></span>
-      </div>
-      <p id="cold-message" class="cold-message"></p>
-      <p class="cold-temp"><span id="cold-value">—</span></p>
-      <button id="cold-translate" class="btn btn-outline btn-sm" type="button">Translate to English</button>
     </section>
 
     <!-- Status / error card -->
@@ -87,93 +74,142 @@
       <p id="status-message"></p>
     </section>
 
-    <div class="grid">
-      <div class="grid-col">
-        <!-- AQI card -->
+    <!-- Primary composition: hero + context column -->
+    <div class="top-grid">
+      <!-- Current weather hero -->
+      <section id="weather-card" class="hero hidden" aria-live="polite">
+        <div class="hero-top">
+          <div>
+            <p id="weather-location" class="hero-location">—</p>
+            <p class="hero-time"><span id="weather-updated">—</span> · local time</p>
+          </div>
+          <span id="hero-mode-chip" class="hero-chip"></span>
+        </div>
+        <div class="hero-main">
+          <img id="weather-icon" class="hero-icon" alt="" src="" width="96" height="96" />
+          <span id="weather-temp" class="hero-temp num">—</span>
+          <span class="hero-unit">°C</span>
+        </div>
+        <p id="weather-condition" class="hero-condition">—</p>
+        <p class="hero-feels">Feels like <span id="weather-feels" class="num">—</span></p>
+        <dl class="metrics">
+          <div class="metric"><dt>Humidity</dt><dd id="weather-humidity" class="num">—</dd></div>
+          <div class="metric"><dt>Wind</dt><dd id="weather-wind" class="num">—</dd></div>
+          <div class="metric"><dt>Gust</dt><dd id="weather-gust" class="num">—</dd></div>
+          <div class="metric"><dt>UV index</dt><dd id="weather-uv" class="num">—</dd></div>
+          <div class="metric"><dt>Visibility</dt><dd id="weather-vis" class="num">—</dd></div>
+          <div class="metric"><dt>Pressure</dt><dd id="weather-pressure" class="num">—</dd></div>
+        </dl>
+      </section>
+
+      <!-- Context column -->
+      <div class="side-col">
+        <!-- AQI panel -->
         <section id="aqi-card" class="card aqi-card hidden" aria-live="polite">
-          <div class="card-label-row">
-            <span class="card-label">AIR QUALITY</span>
+          <div class="card-head">
+            <span class="card-title">Air quality</span>
             <span id="aqi-standard-badge" class="badge"></span>
           </div>
-          <div class="aqi-value-row">
-            <span id="aqi-value" class="aqi-value">—</span>
-            <span id="aqi-category" class="aqi-category"></span>
+          <div class="aqi-row">
+            <span id="aqi-value" class="aqi-value num">—</span>
+            <div class="aqi-cat-wrap">
+              <span id="aqi-category" class="aqi-category">—</span>
+              <div id="aqi-scale" class="aqi-scale" aria-hidden="false">
+                <span id="aqi-pointer" class="aqi-pointer"></span>
+                <div class="aqi-segs">
+                  <span class="seg" data-cat="Good"></span><span class="seg" data-cat="Satisfactory"></span><span class="seg" data-cat="Moderate"></span><span class="seg" data-cat="Poor"></span><span class="seg" data-cat="Very Poor"></span><span class="seg" data-cat="Severe"></span>
+                </div>
+                <div class="aqi-labels">
+                  <span>Good</span><span>Satisf.</span><span>Moderate</span><span>Poor</span><span>V. Poor</span><span>Severe</span>
+                </div>
+              </div>
+            </div>
           </div>
-          <div id="aqi-scale" class="aqi-scale" aria-hidden="true">
-            <span class="seg seg-1"></span><span class="seg seg-2"></span><span class="seg seg-3"></span><span class="seg seg-4"></span><span class="seg seg-5"></span><span class="seg seg-6"></span>
-          </div>
-          <dl class="metrics">
-            <div class="metric"><dt>PM2.5</dt><dd id="aqi-pm25">—</dd></div>
-            <div class="metric"><dt>PM10</dt><dd id="aqi-pm10">—</dd></div>
-            <div class="metric" id="aqi-dominant-wrap"><dt>DOMINANT</dt><dd id="aqi-dominant">—</dd></div>
+          <dl class="metrics metrics-sm">
+            <div class="metric"><dt>PM2.5</dt><dd id="aqi-pm25" class="num">—</dd></div>
+            <div class="metric"><dt>PM10</dt><dd id="aqi-pm10" class="num">—</dd></div>
+            <div class="metric" id="aqi-dominant-wrap"><dt>Dominant</dt><dd id="aqi-dominant">—</dd></div>
           </dl>
-          <p class="updated"><span>Updated:</span> <span id="aqi-updated">—</span></p>
+          <p class="source-line">Updated <span id="aqi-updated">—</span></p>
         </section>
 
-        <!-- Rain forecast card -->
-        <section id="rain-card" class="card rain-card hidden" aria-live="polite">
-          <div class="card-label-row">
-            <span class="card-label">RAIN OUTLOOK — NEXT 24 HOURS</span>
-            <span id="rain-issue" class="badge"></span>
+        <!-- Pollution alert -->
+        <section id="alert-card" class="card alert-card hidden" aria-live="polite">
+          <div class="card-head">
+            <span class="card-title" id="alert-level">Pollution alert</span>
+            <span id="alert-category" class="badge"></span>
           </div>
-          <p id="rain-message" class="rain-message"></p>
-          <div id="rain-bars" class="rain-bars"></div>
-          <dl class="metrics">
-            <div class="metric"><dt>NEXT RAIN</dt><dd id="rain-next">—</dd></div>
-            <div class="metric"><dt>CHANCE</dt><dd id="rain-chance">—</dd></div>
-            <div class="metric"><dt>AMOUNT</dt><dd id="rain-amount">—</dd></div>
-          </dl>
+          <p id="alert-message" class="alert-message"></p>
         </section>
 
-        <!-- Daily outlook -->
-        <section id="daily-card" class="card daily-card hidden" aria-live="polite">
-          <div class="card-label-row">
-            <span class="card-label">DAILY OUTLOOK</span>
-            <span class="badge">FORECAST</span>
+        <!-- Cold/winter commentary -->
+        <section id="cold-card" class="card cold-card hidden" aria-live="polite">
+          <div class="card-head">
+            <span class="card-title cold-title">
+              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 3v18M12 7l3-2M12 7 9 5m3 12 3-2m-3 2-3-2M4.2 7.5l15.6 9M4.2 16.5l15.6-9M6.5 7.5 5 5m2.4 1.6L6 9m11.5 7.5L19 19m-2.4-1.6L18 15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg>
+              Cold commentary
+            </span>
+            <span id="cold-measure" class="badge"></span>
           </div>
-          <div id="daily-list" class="daily-list"></div>
-        </section>
-      </div>
-
-      <div class="grid-col">
-        <!-- Weather card -->
-        <section id="weather-card" class="card weather-card hidden" aria-live="polite">
-          <div class="card-label-row">
-            <span class="card-label">CURRENT WEATHER</span>
-            <span id="weather-location" class="badge">—</span>
-          </div>
-          <div class="weather-main">
-            <img id="weather-icon" class="weather-icon" alt="" src="" width="72" height="72" />
-            <span id="weather-temp" class="temp">—</span>
-            <span class="temp-unit">°C</span>
-          </div>
-          <p id="weather-condition" class="condition">—</p>
-          <dl class="metrics">
-            <div class="metric"><dt>FEELS LIKE</dt><dd id="weather-feels">—</dd></div>
-            <div class="metric"><dt>HUMIDITY</dt><dd id="weather-humidity">—</dd></div>
-            <div class="metric"><dt>WIND</dt><dd id="weather-wind">—</dd></div>
-            <div class="metric"><dt>GUST</dt><dd id="weather-gust">—</dd></div>
-            <div class="metric"><dt>UV INDEX</dt><dd id="weather-uv">—</dd></div>
-            <div class="metric"><dt>VISIBILITY</dt><dd id="weather-vis">—</dd></div>
-          </dl>
-          <p class="updated"><span>Observed:</span> <span id="weather-updated">—</span></p>
+          <p id="cold-message" class="cold-message"></p>
+          <p class="cold-temp"><span id="cold-value" class="num">—</span></p>
+          <button id="cold-translate" class="btn btn-ghost btn-sm" type="button">Translate to English</button>
         </section>
       </div>
     </div>
+
+    <!-- Storm indicators (forecast-based) -->
+    <section id="storm-indicator-card" class="card storm-card hidden" aria-live="polite">
+      <div class="card-head">
+        <span class="card-title storm-title">
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M13 2 4.5 13.5H11L9.5 22 19 9.5h-6.5L13 2Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+          Storm / severe-weather indicator
+        </span>
+        <span class="badge">Forecast-based</span>
+      </div>
+      <div id="storm-indicator-list"></div>
+    </section>
+
+    <!-- Rain forecast (full width) -->
+    <section id="rain-card" class="card rain-card hidden" aria-live="polite">
+      <div class="card-head">
+        <span class="card-title rain-title">
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M7 15a4.5 4.5 0 0 1-.4-9A6 6 0 0 1 18 8.5 3.8 3.8 0 0 1 17.5 15H7Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9 18.5v2m3-3.5v3.5m3-4v2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+          Rain outlook — next 24 hours
+        </span>
+        <span id="rain-issue" class="badge"></span>
+      </div>
+      <p id="rain-message" class="rain-message"></p>
+      <div id="rain-bars" class="rain-bars"></div>
+      <dl class="metrics metrics-sm">
+        <div class="metric"><dt>Next rain</dt><dd id="rain-next">—</dd></div>
+        <div class="metric"><dt>Rain chance</dt><dd id="rain-chance" class="num">—</dd></div>
+        <div class="metric"><dt>Expected amount</dt><dd id="rain-amount" class="num">—</dd></div>
+      </dl>
+    </section>
+
+    <!-- Daily outlook (full width) -->
+    <section id="daily-card" class="card daily-card hidden" aria-live="polite">
+      <div class="card-head">
+        <span class="card-title">Daily outlook</span>
+        <span class="badge">Forecast</span>
+      </div>
+      <div id="daily-list" class="daily-list"></div>
+    </section>
   </main>
 
   <!-- State / UT browse modal -->
   <div id="states-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Browse Indian states and Union Territories">
     <div class="modal-box card">
-      <div class="card-label-row">
-        <span class="card-label" id="states-title">SELECT A STATE OR UNION TERRITORY</span>
-        <button id="close-states" class="btn btn-outline btn-sm" type="button">CLOSE</button>
+      <div class="card-head">
+        <span class="card-title" id="states-title">Select a state or Union Territory</span>
+        <button id="close-states" class="btn btn-ghost btn-sm" type="button">Close</button>
       </div>
       <div id="states-grid" class="states-grid"></div>
       <div id="state-places" class="state-places hidden">
-        <div class="card-label-row">
-          <span class="card-label" id="state-places-title"></span>
-          <button id="back-states" class="btn btn-outline btn-sm" type="button">← BACK</button>
+        <div class="card-head">
+          <span class="card-title" id="state-places-title"></span>
+          <button id="back-states" class="btn btn-ghost btn-sm" type="button">← Back</button>
         </div>
         <div id="state-places-list" class="state-places-list"></div>
       </div>
