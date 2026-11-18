@@ -1,7 +1,7 @@
 /* ============================================================
-   MOSAM MASTANA — Frontend logic (v1.2)
+   MOSAM MASTANA — Frontend logic (v1.3, Monsoon Modern)
    India-first search · AQI · cold commentary (Hinglish/English)
-   · rain forecast · storm awareness
+   · rain forecast · storm awareness · weather-responsive accents
    All data is fetched live from /api/weather and /api/search.
    No hardcoded or mock weather data.
    ============================================================ */
@@ -10,39 +10,30 @@ import { POPULAR_ZONES, STATES_AND_UTS, STATE_PLACES } from './places.js';
 
 const DEFAULT_QUERY = 'Delhi,India'; // FR-02: Delhi loads on launch (disambiguated from Delhi, Canada)
 
-/* ---------------- Cold thresholds (configurable, per PRD F5) ---------------- */
-const COLD_RULES = [
+/* ---------------- Configurable thresholds ---------------- */
+const COLD_RULES = [           // Wind-chill/feels-like °C → level
   { max: 5, level: 'Very Cold' },
   { max: 10, level: 'Cold' },
   { max: 18, level: 'Chilly' },
 ];
+const HEAT_THRESHOLD_C = 35;   // 7.4: Hot / Heat mode (configurable, validate before launch)
 
+/* ---------------- Message pairs ---------------- */
 const COLD_MESSAGES = {
-  'Very Cold': {
-    hi: 'Bhai kitni thand hai, lagta hai, barf jam jayegi!',
-    en: "Bro, it's so cold—it feels like everything might freeze!",
-  },
-  'Cold': {
-    hi: 'Bhai, thand badh gayi hai — garam kapde pehen lena.',
-    en: "It's getting cold — wear warm clothes.",
-  },
-  'Chilly': {
-    hi: 'Bhai, halki thand hai — jacket le lena.',
-    en: "It's a bit chilly — carry a jacket.",
-  },
+  'Very Cold': { hi: 'Bhai kitni thand hai, lagta hai, barf jam jayegi!', en: "Bro, it's so cold—it feels like everything might freeze!" },
+  'Cold': { hi: 'Bhai, thand badh gayi hai — garam kapde pehen lena.', en: "It's getting cold — wear warm clothes." },
+  'Chilly': { hi: 'Bhai, halki thand hai — jacket le lena.', en: "It's a bit chilly — carry a jacket." },
 };
 
-/* ---------------- Indian AQI (CPCB) alert pairs (PRD F4/F8) ---------------- */
 const AQI_MESSAGES = [
   { max: 50,  category: 'Good',         color: 'var(--aqi-good)',         hi: 'Hawa badiya hai bhai! Mausam ka maza lo.', en: 'Air is great, bro! Enjoy the weather.' },
-  { max: 100, category: 'Satisfactory', color: 'var(--aqi-satisfactory)', hi: 'Sab theek hai! Bas apna khayal rakhna.', en: "All good! Just take care of yourself." },
+  { max: 100, category: 'Satisfactory', color: 'var(--aqi-satisfactory)', hi: 'Sab theek hai! Bas apna khayal rakhna.', en: 'All good! Just take care of yourself.' },
   { max: 200, category: 'Moderate',     color: 'var(--aqi-moderate)',     hi: 'Thoda sambhal ke bhai! Sensitive log outdoor activity kam rakhein.', en: 'Take it easy, bro! Sensitive people should reduce outdoor activity.' },
   { max: 300, category: 'Poor',         color: 'var(--aqi-poor)',         hi: 'Mask laga lo bhai! Pollution zyada hai.', en: 'Wear a mask, bro! Pollution is high.' },
   { max: 400, category: 'Very Poor',    color: 'var(--aqi-very-poor)',    hi: 'Bhai, hawa ki haalat kharab hai! Outdoor activities limit karo.', en: 'Bro, the air is in bad shape! Limit outdoor activities.' },
   { max: 500, category: 'Severe',       color: 'var(--aqi-severe)',       hi: 'MASK LAGA LO BHAI! Zaroori na ho toh bahar mat niklo.', en: 'WEAR A MASK, BRO! Do not go outside unless necessary.' },
 ];
 
-/* US EPA categories — factual English messages for non-Indian locations only */
 const EPA_MESSAGES = {
   'Good': 'Air quality is good.',
   'Moderate': 'Air quality is moderate — unusually sensitive people should take care.',
@@ -61,6 +52,14 @@ const RAIN_LOW = {
   en: 'Rain chances are low — an umbrella would not hurt, though.',
 };
 
+/* ---------------- Small consistent SVG icon set (7.8) ---------------- */
+const ICONS = {
+  bolt: '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M13 2 4.5 13.5H11L9.5 22 19 9.5h-6.5L13 2Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>',
+  rain: '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M7 15a4.5 4.5 0 0 1-.4-9A6 6 0 0 1 18 8.5 3.8 3.8 0 0 1 17.5 15H7Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9 18.5v2m3-3.5v3.5m3-4v2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>',
+  wind: '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M3 8h9a3 3 0 1 0-3-3M3 12h13a3 3 0 1 1-3 3M3 16h7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>',
+  drop: '<svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path d="M12 3.2c3.1 3.4 5.6 6.3 5.6 9.4a5.6 5.6 0 1 1-11.2 0c0-3.1 2.5-6 5.6-9.4Z" fill="currentColor"/></svg>',
+};
+
 /* ---------------- Elements ---------------- */
 const el = (id) => document.getElementById(id);
 const els = {
@@ -73,25 +72,26 @@ const els = {
   coldCard: el('cold-card'), coldMeasure: el('cold-measure'), coldMessage: el('cold-message'), coldValue: el('cold-value'), coldTranslate: el('cold-translate'),
   statusCard: el('status-card'), statusMessage: el('status-message'),
   aqiCard: el('aqi-card'), aqiBadge: el('aqi-standard-badge'), aqiValue: el('aqi-value'), aqiCategory: el('aqi-category'),
-  aqiPm25: el('aqi-pm25'), aqiPm10: el('aqi-pm10'), aqiDominant: el('aqi-dominant'), aqiDominantWrap: el('aqi-dominant-wrap'), aqiUpdated: el('aqi-updated'), aqiScale: el('aqi-scale'),
+  aqiScale: el('aqi-scale'), aqiPointer: el('aqi-pointer'),
+  aqiPm25: el('aqi-pm25'), aqiPm10: el('aqi-pm10'), aqiDominant: el('aqi-dominant'), aqiDominantWrap: el('aqi-dominant-wrap'), aqiUpdated: el('aqi-updated'),
   rainCard: el('rain-card'), rainIssue: el('rain-issue'), rainMessage: el('rain-message'), rainBars: el('rain-bars'),
   rainNext: el('rain-next'), rainChance: el('rain-chance'), rainAmount: el('rain-amount'),
   dailyCard: el('daily-card'), dailyList: el('daily-list'),
-  weatherCard: el('weather-card'), weatherLocation: el('weather-location'), weatherIcon: el('weather-icon'),
+  weatherCard: el('weather-card'), weatherLocation: el('weather-location'), weatherIcon: el('weather-icon'), heroChip: el('hero-mode-chip'),
   weatherTemp: el('weather-temp'), weatherCondition: el('weather-condition'), weatherFeels: el('weather-feels'),
   weatherHumidity: el('weather-humidity'), weatherWind: el('weather-wind'), weatherGust: el('weather-gust'),
-  weatherUv: el('weather-uv'), weatherVis: el('weather-vis'), weatherUpdated: el('weather-updated'),
+  weatherUv: el('weather-uv'), weatherVis: el('weather-vis'), weatherPressure: el('weather-pressure'), weatherUpdated: el('weather-updated'),
   statesModal: el('states-modal'), statesGrid: el('states-grid'), statesTitle: el('states-title'),
   statePlaces: el('state-places'), statePlacesTitle: el('state-places-title'), statePlacesList: el('state-places-list'),
   closeStates: el('close-states'), backStates: el('back-states'),
 };
 
 /* ---------------- State ---------------- */
-let lang = 'hi';          // 'hi' (Hinglish) | 'en'
-let lastData = null;      // last successful /api/weather payload
+let lang = 'hi';
+let lastData = null;
+let lastDataMode = null;   // avoid re-applying accents on minor refreshes (7.4)
 let searchTimer = null;
 let activeStateName = null;
-let activeQuery = null;   // query of the currently displayed location
 
 /* ---------------- Helpers ---------------- */
 const fmt = (v, unit = '') => (v === null || v === undefined ? '—' : `${Math.round(v)}${unit}`);
@@ -113,12 +113,11 @@ function hideAllCards() {
 
 async function fetchWeather(query) {
   if (!query) return;
-  activeQuery = query;
   hideStatus();
   hideAllCards();
   const submitBtn = els.form.querySelector('button');
   submitBtn.disabled = true;
-  submitBtn.textContent = 'LOADING…';
+  submitBtn.textContent = 'Loading…';
   try {
     const res = await fetch(`/api/weather?q=${encodeURIComponent(query)}`);
     const data = await res.json();
@@ -127,12 +126,13 @@ async function fetchWeather(query) {
       return;
     }
     lastData = data;
+    applyWeatherMode(data);
     renderAll(data);
   } catch {
     showStatus('Network error. Could not fetch weather data. Check your connection and try again.');
   } finally {
     submitBtn.disabled = false;
-    submitBtn.textContent = 'SEARCH';
+    submitBtn.textContent = 'Search';
   }
 }
 
@@ -147,7 +147,32 @@ function renderAll(data) {
   renderStormIndicators(data);
 }
 
-/* ---------------- Current weather ---------------- */
+/* ---------------- Weather-responsive accents (7.4) ---------------- */
+
+function computeWeatherMode(data) {
+  // Priority: storm (official warning or severe storm condition) > rain > cold > hot > clear.
+  const condText = (data.weather.condition || '').toLowerCase();
+  const activeWarnings = data.alerts && data.alerts.available && data.alerts.warnings.length > 0;
+
+  if (activeWarnings || /thunder|storm|hurricane|cyclone|tornado|blizzard/.test(condText)) return 'storm';
+  if (/rain|drizzle|shower|sleet|freezing/.test(condText) || (data.weather.tempC !== null && data.forecast.available === false && false)) return 'rain';
+  const coldValue = data.weather.windChillC !== null ? data.weather.windChillC : data.weather.feelsLikeC;
+  if (coldValue !== null && coldValue <= COLD_RULES[COLD_RULES.length - 1].max) return 'cold';
+  if (data.weather.tempC !== null && data.weather.tempC >= HEAT_THRESHOLD_C) return 'hot';
+  return 'clear';
+}
+
+function applyWeatherMode(data) {
+  const mode = computeWeatherMode(data);
+  if (mode !== lastDataMode) {
+    lastDataMode = mode;
+    document.body.dataset.mode = mode; // CSS drives the accent tokens
+  }
+  els.heroChip.textContent =
+    { storm: 'Storm watch', rain: 'Monsoon', cold: 'Winter', hot: 'Heat', clear: 'Clear' }[mode] || 'Clear';
+}
+
+/* ---------------- Current weather hero ---------------- */
 function renderWeather(data) {
   const { location, weather } = data;
   els.weatherLocation.textContent = [location.name, location.country].filter(Boolean).join(', ') || '—';
@@ -162,27 +187,26 @@ function renderWeather(data) {
   els.weatherGust.textContent = weather.windGustKph === null ? '—' : `${Math.round(weather.windGustKph)} km/h`;
   els.weatherUv.textContent = fmt(weather.uv);
   els.weatherVis.textContent = weather.visibilityKm === null ? '—' : `${weather.visibilityKm} km`;
+  els.weatherPressure.textContent = weather.pressureMb === null ? '—' : `${weather.pressureMb} mb`;
   els.weatherUpdated.textContent = weather.lastUpdated || '—';
   els.weatherCard.classList.remove('hidden');
   markActiveChip(location);
 }
 
-/* ---------------- AQI ---------------- */
+/* ---------------- AQI panel ---------------- */
 function renderAqi(data) {
   const aqi = data.aqi;
   if (!aqi.available) {
-    // Data rule: never invent a pollution status.
-    els.aqiBadge.textContent = aqi.isIndia ? 'CPCB AQI' : 'LOCAL AQI';
-    els.aqiValue.textContent = 'N/A';
-    els.aqiValue.style.background = 'var(--bg)';
-    els.aqiValue.style.color = 'var(--ink)';
+    els.aqiBadge.textContent = aqi.isIndia ? 'CPCB AQI' : 'Local AQI';
+    els.aqiValue.textContent = '—';
+    els.aqiValue.style.color = 'var(--slate)';
     els.aqiCategory.textContent = 'Data unavailable';
-    els.aqiCategory.style.color = 'inherit';
+    els.aqiCategory.style.color = 'var(--slate)';
+    els.aqiScale.classList.add('hidden');
     els.aqiPm25.textContent = fmt(aqi.pm25Concentration, ' µg/m³');
     els.aqiPm10.textContent = fmt(aqi.pm10Concentration, ' µg/m³');
     els.aqiDominantWrap.classList.add('hidden');
     els.aqiUpdated.textContent = data.weather.lastUpdated || '—';
-    els.aqiScale.classList.add('hidden');
     els.aqiCard.classList.remove('hidden');
     return;
   }
@@ -196,24 +220,32 @@ function renderAqi(data) {
   if (aqi.isIndia) {
     const rule = AQI_MESSAGES.find((r) => aqi.aqi <= r.max) || AQI_MESSAGES[AQI_MESSAGES.length - 1];
     els.aqiValue.textContent = Math.round(aqi.aqi);
-    els.aqiValue.style.background = rule.color;
-    els.aqiValue.style.color = (aqi.aqi >= 200 && aqi.aqi <= 300) ? 'var(--ink)' : '#fff';
+    els.aqiValue.style.color = rule.color;
     els.aqiCategory.textContent = rule.category;
     els.aqiCategory.style.color = rule.color;
     els.aqiDominantWrap.classList.remove('hidden');
     els.aqiDominant.textContent = aqi.dominantPollutant || '—';
+
+    // Scale pointer + segment emphasis (never colour-only: number & label in text)
+    const idx = AQI_MESSAGES.indexOf(rule);
+    els.aqiPointer.style.left = `${(idx * 100) / 6 + 100 / 12}%`;
+    els.aqiPointer.style.borderTopColor = rule.color;
     els.aqiScale.querySelectorAll('.seg').forEach((seg, i) => {
-      seg.classList.toggle('active', i === AQI_MESSAGES.indexOf(rule));
+      seg.classList.toggle('dim', i !== idx);
+    });
+    els.aqiScale.parentElement.querySelectorAll('.aqi-labels span').forEach((l, i) => {
+      l.classList.toggle('current', i === idx);
     });
   } else {
-    // US EPA categorical index — clearly labelled, category shown as the headline.
-    els.aqiValue.textContent = aqi.aqi !== null ? aqi.aqi : 'N/A';
-    els.aqiValue.style.background = 'var(--bg)';
+    // US EPA categorical index — clearly labelled, never presented as Indian AQI.
+    els.aqiValue.textContent = aqi.aqi !== null ? aqi.aqi : '—';
     els.aqiValue.style.color = 'var(--ink)';
     els.aqiCategory.textContent = aqi.category || '—';
-    els.aqiCategory.style.color = 'inherit';
+    els.aqiCategory.style.color = 'var(--ink)';
     els.aqiDominantWrap.classList.add('hidden');
-    els.aqiScale.querySelectorAll('.seg').forEach((seg) => seg.classList.remove('active'));
+    els.aqiPointer.style.left = '50%';
+    els.aqiPointer.style.borderTopColor = 'var(--slate)';
+    els.aqiScale.querySelectorAll('.seg').forEach((seg) => seg.classList.remove('dim'));
   }
   els.aqiCard.classList.remove('hidden');
 }
@@ -224,20 +256,23 @@ function renderPollutionAlert(data) {
 
   if (aqi.isIndia) {
     const rule = AQI_MESSAGES.find((r) => aqi.aqi <= r.max) || AQI_MESSAGES[AQI_MESSAGES.length - 1];
-    els.alertLevel.textContent = 'POLLUTION ALERT';
+    els.alertLevel.textContent = 'Pollution alert';
     els.alertCategory.textContent = rule.category;
-    els.alertCategory.style.color = rule.color;
+    els.alertCategory.style.background = rule.color;
+    els.alertCategory.style.borderColor = rule.color;
+    els.alertCategory.style.color = '#fff';
+    els.alertCard.style.borderLeftColor = rule.color;
     els.alertMessage.textContent = rule[lang];
-    els.alertMessage.style.color = aqi.aqi >= 301 ? rule.color : 'var(--ink)';
-    els.alertCard.style.background = aqi.aqi >= 401 ? '#ffe9e9' : 'var(--surface)';
   } else {
-    els.alertLevel.textContent = 'AIR QUALITY';
+    els.alertLevel.textContent = 'Air quality';
     els.alertCategory.textContent = aqi.category || '';
-    els.alertCategory.style.color = 'inherit';
+    els.alertCategory.style.background = 'var(--mist)';
+    els.alertCategory.style.borderColor = 'var(--line)';
+    els.alertCategory.style.color = 'var(--slate)';
+    els.alertCard.style.borderLeftColor = 'var(--brand)';
     els.alertMessage.textContent = EPA_MESSAGES[aqi.category] || 'Air quality information available.';
-    els.alertMessage.style.color = 'var(--ink)';
-    els.alertCard.style.background = 'var(--surface)';
   }
+  els.alertMessage.style.color = 'var(--ink)';
   els.alertCard.classList.remove('hidden');
 }
 
@@ -247,7 +282,7 @@ function computeCold(data) {
   if (w.windChillC === null && w.feelsLikeC === null) return null; // missing data → no guessed alert
   const value = w.windChillC !== null ? w.windChillC : w.feelsLikeC;
   const rule = COLD_RULES.find((r) => value <= r.max);
-  return rule ? { value, measure: w.windChillC !== null ? 'WIND CHILL' : 'FEELS-LIKE', rule } : null;
+  return rule ? { value, measure: w.windChillC !== null ? 'Wind chill' : 'Feels-like', rule } : null;
 }
 
 function renderCold(data) {
@@ -256,7 +291,7 @@ function renderCold(data) {
   const pair = COLD_MESSAGES[cold.rule.level];
   els.coldMeasure.textContent = cold.measure;
   els.coldMessage.textContent = pair[lang];
-  els.coldValue.textContent = `${Math.round(cold.value)}°C (${cold.measure.toLowerCase()} · measured ${Math.round(data.weather.tempC)}°C)`;
+  els.coldValue.textContent = `${Math.round(cold.value)}°C ${cold.measure.toLowerCase()} · measured ${Math.round(data.weather.tempC)}°C`;
   els.coldTranslate.textContent = lang === 'hi' ? 'Translate to English' : 'Hinglish mein padho';
   els.coldCard.classList.remove('hidden');
 }
@@ -265,7 +300,7 @@ function renderCold(data) {
 function next24Hours(data) {
   const fc = data.forecast;
   if (!fc.available) return [];
-  const currentHourPrefix = (data.location.localtime || '').slice(0, 13); // "2026-11-16 08"
+  const currentHourPrefix = (data.location.localtime || '').slice(0, 13);
   let start = fc.hourly.findIndex((h) => h.time && h.time.slice(0, 13) === currentHourPrefix);
   if (start < 0) start = 0;
   return fc.hourly.slice(start, start + 24);
@@ -287,7 +322,7 @@ function renderRain(data) {
     els.rainNext.textContent = '—';
     els.rainChance.textContent = '—';
     els.rainAmount.textContent = '—';
-    els.rainIssue.textContent = 'FORECAST UNAVAILABLE';
+    els.rainIssue.textContent = 'Forecast unavailable';
     els.dailyCard.classList.add('hidden');
     return;
   }
@@ -313,18 +348,20 @@ function renderRain(data) {
     els.rainAmount.textContent = '—';
   }
 
-  // Hourly probability bars (probability, not certainty)
+  // Hourly probability bars — probability, never certainty (F6)
   els.rainBars.innerHTML = '';
   hours.forEach((h) => {
     const pct = h.chanceOfRain;
     const wrap = document.createElement('div');
     wrap.className = 'rain-bar' + (nextRain && h === nextRain ? ' next' : '');
+    wrap.setAttribute('role', 'img');
+    wrap.setAttribute('aria-label', h.time ? `${h.time.slice(11)} — rain chance ${pct === null ? 'unavailable' : Math.round(pct) + '%'}` : 'forecast hour');
     const label = document.createElement('span');
     label.className = 'pct';
     label.textContent = pct === null ? '?' : `${Math.round(pct)}%`;
     const bar = document.createElement('div');
     bar.className = 'bar';
-    bar.style.height = pct === null ? '3px' : `${Math.max(3, Math.round((pct / 100) * 68))}px`;
+    bar.style.height = pct === null ? '3px' : `${Math.max(3, Math.round((pct / 100) * 62))}px`;
     const hr = document.createElement('span');
     hr.className = 'hr';
     hr.textContent = h.time ? h.time.slice(11) : '—';
@@ -332,7 +369,7 @@ function renderRain(data) {
     els.rainBars.appendChild(wrap);
   });
 
-  els.rainIssue.textContent = `LOCAL TIME ${(data.location.localtime || '—').slice(11)}`;
+  els.rainIssue.textContent = `Local time ${(data.location.localtime || '—').slice(11)}`;
   els.rainCard.classList.remove('hidden');
 }
 
@@ -347,10 +384,10 @@ function renderDaily(data) {
     item.className = 'daily-item';
     item.innerHTML = `
       <div class="d-name">${dayName}</div>
-      <img src="https:${d.icon || ''}" width="28" height="28" alt="" />
+      <img src="https:${d.icon || ''}" width="30" height="30" alt="" />
       <div class="d-cond">${d.condition || '—'}</div>
-      <div class="d-temps">${d.maxTempC === null ? '?' : Math.round(d.maxTempC)}° / ${d.minTempC === null ? '?' : Math.round(d.minTempC)}°</div>
-      <div class="d-rain">🌧 ${d.chanceOfRain === null ? '—' : Math.round(d.chanceOfRain) + '%'}</div>
+      <div class="d-temps num">${d.maxTempC === null ? '?' : Math.round(d.maxTempC)}° / ${d.minTempC === null ? '?' : Math.round(d.minTempC)}°</div>
+      <div class="d-rain">${ICONS.drop} ${d.chanceOfRain === null ? '—' : Math.round(d.chanceOfRain) + '%'}</div>
     `;
     els.dailyList.appendChild(item);
   });
@@ -377,9 +414,9 @@ function renderWarnings(data) {
     item.className = 'warning-item';
     const validity = [w.effectiveLocal, w.expiresLocal].filter(Boolean).join(' → ');
     item.innerHTML = `
-      <div class="warning-event">⚠️ ${w.event || 'Weather warning'}</div>
-      <div class="warning-meta">Severity: ${w.severity || '—'} · Areas: ${w.areas || '—'}</div>
-      ${validity ? `<div class="warning-meta">Valid: ${validity} (local time)</div>` : ''}
+      <div class="warning-event">${w.event || 'Weather warning'}</div>
+      <div class="warning-meta">Severity: <strong>${w.severity || '—'}</strong> · Areas: <strong>${w.areas || '—'}</strong></div>
+      ${validity ? `<div class="warning-meta">Valid: <strong>${validity}</strong> (local time)</div>` : ''}
       <div class="warning-meta">Source: ${w.source || '—'}</div>
       ${w.instruction ? `<div class="warning-instruction">${w.instruction}</div>` : ''}
     `;
@@ -395,26 +432,26 @@ function renderStormIndicators(data) {
 
   hours.forEach((h) => {
     const text = (h.condition || '').toLowerCase();
-    const hourNum = h.time ? parseInt(h.time.slice(11, 13), 10) : null;
+    const time = h.time ? h.time.slice(11) : '';
     if (/thunder/.test(text)) {
-      indicators.push(`⚡ Thunderstorm possible around ${h.time.slice(11)} — forecast indicator`);
+      indicators.push({ icon: ICONS.bolt, text: `Thunderstorm possible around ${time} — forecast indicator` });
     } else if (/heavy (rain|showers)/.test(text)) {
-      indicators.push(`🌧 Heavy rain possible around ${h.time.slice(11)} — forecast indicator`);
+      indicators.push({ icon: ICONS.rain, text: `Heavy rain possible around ${time} — forecast indicator` });
     }
   });
   const gust = data.weather.windGustKph;
   if (gust !== null && gust >= 50) {
-    indicators.push(`💨 High wind gusts up to ${Math.round(gust)} km/h — forecast indicator`);
+    indicators.push({ icon: ICONS.wind, text: `High wind gusts up to ${Math.round(gust)} km/h — forecast indicator` });
   }
 
   if (indicators.length === 0) {
     els.stormCard.classList.add('hidden');
     return;
   }
-  indicators.slice(0, 6).forEach((t) => {
+  indicators.slice(0, 6).forEach((ind) => {
     const p = document.createElement('p');
     p.className = 'storm-item';
-    p.textContent = t;
+    p.innerHTML = `${ind.icon}<span>${ind.text}</span>`;
     els.stormList.appendChild(p);
   });
   const note = document.createElement('p');
@@ -433,20 +470,18 @@ function placeButton(place) {
   btn.type = 'button';
   btn.className = 'suggestion';
   btn.innerHTML = `<span class="s-name">${place.name}</span><span class="s-context">${place.context || place.country || ''}</span>`;
-  btn.addEventListener('click', () => {
-    selectPlace(place);
-  });
+  btn.addEventListener('click', () => selectPlace(place));
   return btn;
 }
 
 function selectPlace(place) {
   els.input.value = [place.name, place.region].filter(Boolean).join(', ');
   els.suggestions.classList.add('hidden');
-  // Use stable coordinates rather than a possibly ambiguous name (FR-01 rule 8)
+  // Stable coordinates rather than a possibly ambiguous name (FR-01 rule 8)
   fetchWeather(`${place.lat},${place.lon}`);
 }
 
-function renderSuggestions(payload, rawQuery) {
+function renderSuggestions(payload) {
   els.suggestions.innerHTML = '';
   const hasIndia = payload.india && payload.india.length > 0;
   const hasGlobal = payload.global && payload.global.length > 0;
@@ -454,7 +489,7 @@ function renderSuggestions(payload, rawQuery) {
   if (!hasIndia && !hasGlobal) {
     const empty = document.createElement('p');
     empty.className = 'empty';
-    empty.textContent = `Location not found. Try the district name or a nearby supported town.`;
+    empty.textContent = 'Location not found. Try the district name or a nearby supported town.';
     els.suggestions.appendChild(empty);
     els.suggestions.classList.remove('hidden');
     return;
@@ -463,14 +498,14 @@ function renderSuggestions(payload, rawQuery) {
   if (hasIndia) {
     const lbl = document.createElement('div');
     lbl.className = 'group-label india';
-    lbl.textContent = '🇮🇳 INDIA';
+    lbl.textContent = 'India';
     els.suggestions.appendChild(lbl);
     payload.india.slice(0, 6).forEach((p) => els.suggestions.appendChild(placeButton(p)));
   }
   if (hasGlobal) {
     const lbl = document.createElement('div');
-    lbl.className = 'group-label global';
-    lbl.textContent = '🌍 GLOBAL';
+    lbl.className = 'group-label';
+    lbl.textContent = 'Global';
     els.suggestions.appendChild(lbl);
     payload.global.slice(0, 6).forEach((p) => els.suggestions.appendChild(placeButton(p)));
   }
@@ -481,9 +516,9 @@ async function runSearch(query) {
   try {
     const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
     const data = await res.json();
-    renderSuggestions(data, query);
+    renderSuggestions(data);
   } catch {
-    els.suggestions.innerHTML = '<p class="empty">Search service unavailable — you can still press SEARCH.</p>';
+    els.suggestions.innerHTML = '<p class="empty">Search service unavailable — you can still press Search.</p>';
     els.suggestions.classList.remove('hidden');
   }
 }
@@ -500,7 +535,6 @@ els.input.addEventListener('keydown', (e) => {
     e.preventDefault();
     const first = els.suggestions.querySelector('.suggestion');
     els.suggestions.classList.add('hidden');
-    // Enter with suggestions uses the first (best-ranked) result; otherwise raw query
     if (first) first.click();
     else fetchWeather(els.input.value.trim());
   }
@@ -526,7 +560,7 @@ function buildPopularStrip() {
   POPULAR_ZONES.forEach((zone) => {
     const zl = document.createElement('span');
     zl.className = 'chip-zone';
-    zl.textContent = zone.zone.toUpperCase();
+    zl.textContent = zone.zone;
     els.popularStrip.appendChild(zl);
     zone.cities.forEach((city) => {
       const chip = document.createElement('button');
@@ -561,10 +595,10 @@ function buildStatesGrid() {
 // F1 rule 2: selecting a state opens its localities — never silently maps to the capital.
 function openStatePlaces(stateName) {
   activeStateName = stateName;
-  els.statesTitle.textContent = stateName.toUpperCase();
+  els.statesTitle.textContent = stateName;
   els.statesGrid.classList.add('hidden');
   els.statePlaces.classList.remove('hidden');
-  els.statePlacesTitle.textContent = `LOCALITIES IN ${stateName.toUpperCase()}`;
+  els.statePlacesTitle.textContent = `Localities in ${stateName}`;
   renderStateChips('');
 }
 
@@ -589,11 +623,12 @@ function renderStateChips(filter) {
           const candidates = [...(data.india || []), ...(data.global || [])];
           const inState = candidates.find((p) => norm(p.region).includes(norm(activeStateName).replace(/\s*\(nct\)/, '')));
           const pick = inState || candidates.find((p) => norm(p.country) === 'india');
-          if (pick) { els.statesModal.classList.add('hidden'); selectPlace(pick); }
-          else { fetchWeather(`${placeName},India`); els.statesModal.classList.add('hidden'); }
-        } catch {
-          fetchWeather(`${placeName},India`);
           els.statesModal.classList.add('hidden');
+          if (pick) selectPlace(pick);
+          else fetchWeather(`${placeName},India`);
+        } catch {
+          els.statesModal.classList.add('hidden');
+          fetchWeather(`${placeName},India`);
         }
       });
       list.appendChild(chip);
@@ -609,7 +644,7 @@ function renderStateChips(filter) {
 
 els.openStates.addEventListener('click', () => {
   els.statesModal.classList.remove('hidden');
-  els.statesTitle.textContent = 'SELECT A STATE OR UNION TERRITORY';
+  els.statesTitle.textContent = 'Select a state or Union Territory';
   els.statesGrid.classList.remove('hidden');
   els.statePlaces.classList.add('hidden');
 });
@@ -617,7 +652,7 @@ els.closeStates.addEventListener('click', () => els.statesModal.classList.add('h
 els.backStates.addEventListener('click', () => {
   els.statePlaces.classList.add('hidden');
   els.statesGrid.classList.remove('hidden');
-  els.statesTitle.textContent = 'SELECT A STATE OR UNION TERRITORY';
+  els.statesTitle.textContent = 'Select a state or Union Territory';
 });
 els.statesModal.addEventListener('click', (e) => {
   if (e.target === els.statesModal) els.statesModal.classList.add('hidden');
@@ -632,7 +667,7 @@ function setLang(next) {
   els.langHi.classList.toggle('active', lang === 'hi');
   els.langEn.classList.toggle('active', lang === 'en');
   if (lastData) {
-    // Re-render only message-bearing cards; data values stay untouched (FR-04 #3)
+    // Re-render only message-bearing cards; data values stay untouched (FR-04)
     renderPollutionAlert(lastData);
     renderCold(lastData);
     renderRain(lastData);
