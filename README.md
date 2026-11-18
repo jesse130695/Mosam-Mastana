@@ -1,6 +1,8 @@
-# MOSAM MASTANA 🌤️😷
+# MOSAM MASTANA 🌧️
 
-**Weather & Air Quality Awareness Platform** — real-time weather, Indian AQI (CPCB) and pollution alerts in one bold, Neo-Brutalist dashboard.
+**Weather & Air Quality Awareness Platform** — real-time weather, Indian AQI (CPCB), cold commentary, rain forecast and severe-weather alerts in one calm, editorial dashboard.
+
+**Design theme (PRD v1.3): Monsoon Modern** — light, editorial and weather-responsive. Core palette: Mist White `#F5F7FA`, Deep Ink `#17283F`, Monsoon Blue `#236B9A`, Deep Teal `#187C7A`, Sunlight `#F4C45E`. Typography: Manrope (headings/hero, tabular numerals) + Inter (body) + Noto Sans Devanagari (Hindi). Weather-responsive accent modes (clear / rain / cold / heat / storm) change only limited accent tokens; AQI semantic colours stay fixed.
 
 ## Features (PRD v1.1)
 
@@ -16,10 +18,12 @@ The app **never** labels a US EPA index as Indian AQI. It computes the **CPCB Na
 ## Architecture
 
 ```
-├── index.html      # Neo-Brutalist dashboard UI
-├── styles.css      # Design system (bold borders, flat colours, hard shadows)
-├── app.js          # Frontend logic, AQI→category→alert mapping
-├── api/weather.js  # Vercel serverless function: WeatherAPI proxy + CPCB AQI logic
+├── index.html      # Monsoon Modern dashboard (hero + AQI panel + forecast modules)
+├── styles.css      # Design system: colour tokens, weather modes, Manrope/Inter typography
+├── app.js          # Frontend logic: search, AQI mapping, cold/rain/storm rules, accent modes
+├── places.js       # Curated popular cities, states/UTs, per-state localities
+├── api/weather.js  # Vercel serverless: WeatherAPI proxy + CPCB AQI logic
+├── api/search.js   # Vercel serverless: India-first geocoding proxy
 ├── vercel.json     # Function runtime config
 └── .env            # WEATHERAPI_KEY (gitignored — never committed)
 ```
@@ -52,4 +56,4 @@ Deployed on Vercel. Set `WEATHERAPI_KEY` in the Vercel project environment varia
 
 ---
 
-Design principle: **"Bold visuals. Minimal clutter. Maximum clarity."**
+Design principle: **"Calm by default. Character when it matters. Clarity in every condition."**
