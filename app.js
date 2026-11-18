@@ -1,7 +1,8 @@
 /* ============================================================
-   MOSAM MASTANA — Frontend logic (v1.3, Monsoon Modern)
+   MOSAM MASTANA — Frontend logic (v1.7, Night Radar)
    India-first search · AQI · cold commentary (Hinglish/English)
    · rain forecast · storm awareness · weather-responsive accents
+   · Leaflet location map (F9: clearly labelled fallback — no fake radar)
    All data is fetched live from /api/weather and /api/search.
    No hardcoded or mock weather data.
    ============================================================ */
@@ -33,6 +34,17 @@ const AQI_MESSAGES = [
   { max: 400, category: 'Very Poor',    color: 'var(--aqi-very-poor)',    hi: 'Bhai, hawa ki haalat kharab hai! Outdoor activities limit karo.', en: 'Bro, the air is in bad shape! Limit outdoor activities.' },
   { max: 500, category: 'Severe',       color: 'var(--aqi-severe)',       hi: 'MASK LAGA LO BHAI! Zaroori na ho toh bahar mat niklo.', en: 'WEAR A MASK, BRO! Do not go outside unless necessary.' },
 ];
+
+/* Dark chip treatment for AQI categories (7.5): semantic text colour
+   on a dark tinted chip — colour is never the only signal. */
+const AQI_CHIP_DARK = {
+  'Good':         { bg: '#102B25', text: 'var(--aqi-good)' },
+  'Satisfactory': { bg: '#293016', text: 'var(--aqi-satisfactory)' },
+  'Moderate':     { bg: '#392D13', text: 'var(--aqi-moderate)' },
+  'Poor':         { bg: '#3E261A', text: 'var(--aqi-poor)' },
+  'Very Poor':    { bg: '#3D2026', text: 'var(--aqi-very-poor)' },
+  'Severe':       { bg: '#3A171D', text: 'var(--aqi-severe)' },
+};
 
 const EPA_MESSAGES = {
   'Good': 'Air quality is good.',
@@ -84,7 +96,45 @@ const els = {
   statesModal: el('states-modal'), statesGrid: el('states-grid'), statesTitle: el('states-title'),
   statePlaces: el('state-places'), statePlacesTitle: el('state-places-title'), statePlacesList: el('state-places-list'),
   closeStates: el('close-states'), backStates: el('back-states'),
+  mapNoteText: el('map-note-text'), mapFrame: document.querySelector('.map-frame'),
 };
+
+/* ---------------- Leaflet location map (F9) ---------------- */
+let map = null;
+let mapMarker = null;
+let mapLabel = null;
+
+function initMap() {
+  if (map || typeof window.L === 'undefined') return; // Leaflet CDN failed → note explains fallback
+  try {
+    map = window.L.map('map', { zoomControl: true, attributionControl: true }).setView([20.59, 78.96], 4);
+    window.L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '&copy; OpenStreetMap contributors',
+    }).addTo(map);
+  } catch {
+    map = null;
+  }
+}
+
+function updateMap(location) {
+  if (!map || !location || location.lat === null || location.lat === undefined) return;
+  const pos = [location.lat, location.lon];
+  if (!mapMarker) {
+    mapMarker = window.L.circleMarker(pos, {
+      radius: 8,
+      color: '#31C7E8',
+      weight: 2,
+      fillColor: '#31C7E8',
+      fillOpacity: 0.55,
+    }).addTo(map);
+    mapLabel = window.L.tooltip({ permanent: true, direction: 'top', offset: [0, -10], className: 'location-marker-label' });
+    mapMarker.bindTooltip(mapLabel);
+  }
+  mapMarker.setLatLng(pos);
+  mapLabel.setContent(location.name || 'Selected location');
+  map.setView(pos, 9, { animate: true });
+}
 
 /* ---------------- State ---------------- */
 let lang = 'hi';
@@ -92,6 +142,7 @@ let lastData = null;
 let lastDataMode = null;   // avoid re-applying accents on minor refreshes (7.4)
 let searchTimer = null;
 let activeStateName = null;
+try { lang = localStorage.getItem('mm-lang') === 'en' ? 'en' : 'hi'; } catch { /* storage unavailable */ }
 
 /* ---------------- Helpers ---------------- */
 const fmt = (v, unit = '') => (v === null || v === undefined ? '—' : `${Math.round(v)}${unit}`);
@@ -115,6 +166,7 @@ async function fetchWeather(query) {
   if (!query) return;
   hideStatus();
   hideAllCards();
+  els.mapNoteText.textContent = 'Loading location…';
   const submitBtn = els.form.querySelector('button');
   submitBtn.disabled = true;
   submitBtn.textContent = 'Loading…';
@@ -128,8 +180,11 @@ async function fetchWeather(query) {
     lastData = data;
     applyWeatherMode(data);
     renderAll(data);
+    updateMap(data.location);
+    els.mapNoteText.textContent = 'Location map — live radar not connected. Precipitation overlay will appear only after a validated radar provider is integrated.';
   } catch {
     showStatus('Network error. Could not fetch weather data. Check your connection and try again.');
+    els.mapNoteText.textContent = 'Location map unavailable — weather data could not be fetched.';
   } finally {
     submitBtn.disabled = false;
     submitBtn.textContent = 'Search';
@@ -199,9 +254,9 @@ function renderAqi(data) {
   if (!aqi.available) {
     els.aqiBadge.textContent = aqi.isIndia ? 'CPCB AQI' : 'Local AQI';
     els.aqiValue.textContent = '—';
-    els.aqiValue.style.color = 'var(--slate)';
+    els.aqiValue.style.color = 'var(--haze)';
     els.aqiCategory.textContent = 'Data unavailable';
-    els.aqiCategory.style.color = 'var(--slate)';
+    els.aqiCategory.style.color = 'var(--haze)';
     els.aqiScale.classList.add('hidden');
     els.aqiPm25.textContent = fmt(aqi.pm25Concentration, ' µg/m³');
     els.aqiPm10.textContent = fmt(aqi.pm10Concentration, ' µg/m³');
@@ -239,12 +294,12 @@ function renderAqi(data) {
   } else {
     // US EPA categorical index — clearly labelled, never presented as Indian AQI.
     els.aqiValue.textContent = aqi.aqi !== null ? aqi.aqi : '—';
-    els.aqiValue.style.color = 'var(--ink)';
+    els.aqiValue.style.color = 'var(--text)';
     els.aqiCategory.textContent = aqi.category || '—';
-    els.aqiCategory.style.color = 'var(--ink)';
+    els.aqiCategory.style.color = 'var(--text)';
     els.aqiDominantWrap.classList.add('hidden');
     els.aqiPointer.style.left = '50%';
-    els.aqiPointer.style.borderTopColor = 'var(--slate)';
+    els.aqiPointer.style.borderTopColor = 'var(--haze)';
     els.aqiScale.querySelectorAll('.seg').forEach((seg) => seg.classList.remove('dim'));
   }
   els.aqiCard.classList.remove('hidden');
@@ -256,23 +311,27 @@ function renderPollutionAlert(data) {
 
   if (aqi.isIndia) {
     const rule = AQI_MESSAGES.find((r) => aqi.aqi <= r.max) || AQI_MESSAGES[AQI_MESSAGES.length - 1];
+    const chip = AQI_CHIP_DARK[rule.category];
     els.alertLevel.textContent = 'Pollution alert';
     els.alertCategory.textContent = rule.category;
-    els.alertCategory.style.background = rule.color;
+    // Dark tinted chip + semantic text (7.5) — never a full-card fill
+    els.alertCategory.style.background = chip.bg;
     els.alertCategory.style.borderColor = rule.color;
-    els.alertCategory.style.color = '#fff';
+    els.alertCategory.style.color = rule.color;
     els.alertCard.style.borderLeftColor = rule.color;
     els.alertMessage.textContent = rule[lang];
+    els.alertMessage.style.color = 'var(--text)';
   } else {
+    // US EPA categorical index — clearly labelled, never presented as Indian AQI.
     els.alertLevel.textContent = 'Air quality';
     els.alertCategory.textContent = aqi.category || '';
-    els.alertCategory.style.background = 'var(--mist)';
+    els.alertCategory.style.background = 'var(--slate2)';
     els.alertCategory.style.borderColor = 'var(--line)';
-    els.alertCategory.style.color = 'var(--slate)';
-    els.alertCard.style.borderLeftColor = 'var(--brand)';
+    els.alertCategory.style.color = 'var(--mist)';
+    els.alertCard.style.borderLeftColor = 'var(--cyan)';
     els.alertMessage.textContent = EPA_MESSAGES[aqi.category] || 'Air quality information available.';
+    els.alertMessage.style.color = 'var(--text)';
   }
-  els.alertMessage.style.color = 'var(--ink)';
   els.alertCard.classList.remove('hidden');
 }
 
@@ -398,17 +457,12 @@ function renderDaily(data) {
 function renderWarnings(data) {
   els.warningList.innerHTML = '';
   const alerts = data.alerts;
-  if (!alerts || !alerts.available) {
-    // Data rule: unavailable warning data must never read as "No warning".
-    els.warningCard.classList.remove('hidden');
-    els.warningList.innerHTML = '<p class="storm-unavailable">Storm warning data unavailable — the official warning feed could not be retrieved for this location.</p>';
-    return;
-  }
-  if (alerts.warnings.length === 0) {
-    els.warningCard.classList.remove('hidden');
-    els.warningList.innerHTML = `<p class="storm-unavailable">No active official warnings (checked ${data.location.localtime || '—'} local time).</p>`;
-    return;
-  }
+  // 7.7/FR-06: warning region collapses cleanly when there are no ACTIVE
+  // warnings. Unavailable data is never shown as "No warning" here — the
+  // note moves into the storm indicator card instead.
+  const hasActive = alerts && alerts.available && alerts.warnings.length > 0;
+  if (!hasActive) { els.warningCard.classList.add('hidden'); return; }
+
   alerts.warnings.forEach((w) => {
     const item = document.createElement('div');
     item.className = 'warning-item';
@@ -444,8 +498,22 @@ function renderStormIndicators(data) {
     indicators.push({ icon: ICONS.wind, text: `High wind gusts up to ${Math.round(gust)} km/h — forecast indicator` });
   }
 
+  // Warning-data status line: unavailable ≠ "No warning" (FR-06 data rule)
+  const alerts = data.alerts;
+  let warningStatus = null;
+  if (!alerts || !alerts.available) {
+    warningStatus = 'Storm warning data unavailable — the official warning feed could not be retrieved for this location.';
+  } else if (alerts.warnings.length === 0) {
+    warningStatus = `No active official warnings for this location (checked ${data.location.localtime || '—'} local time).`;
+  }
+
   if (indicators.length === 0) {
-    els.stormCard.classList.add('hidden');
+    if (warningStatus) {
+      els.stormList.innerHTML = `<p class="storm-unavailable">${warningStatus}</p>`;
+      els.stormCard.classList.remove('hidden');
+    } else {
+      els.stormCard.classList.add('hidden');
+    }
     return;
   }
   indicators.slice(0, 6).forEach((ind) => {
@@ -456,8 +524,14 @@ function renderStormIndicators(data) {
   });
   const note = document.createElement('p');
   note.className = 'storm-note';
-  note.textContent = 'Forecast-based indicator only — not an official warning. Official warnings appear separately above.';
+  note.textContent = 'Forecast-based indicator only — not an official warning.';
   els.stormList.appendChild(note);
+  if (warningStatus) {
+    const st = document.createElement('p');
+    st.className = 'storm-note';
+    st.textContent = warningStatus;
+    els.stormList.appendChild(st);
+  }
   els.stormCard.classList.remove('hidden');
 }
 
@@ -664,6 +738,7 @@ els.statesModal.addEventListener('click', (e) => {
 
 function setLang(next) {
   lang = next;
+  try { localStorage.setItem('mm-lang', next); } catch { /* storage unavailable */ }
   els.langHi.classList.toggle('active', lang === 'hi');
   els.langEn.classList.toggle('active', lang === 'en');
   if (lastData) {
@@ -680,6 +755,9 @@ els.coldTranslate.addEventListener('click', () => setLang(lang === 'hi' ? 'en' :
 /* ============================================================
    Boot
    ============================================================ */
+initMap();
+els.langHi.classList.toggle('active', lang === 'hi');
+els.langEn.classList.toggle('active', lang === 'en');
 buildPopularStrip();
 buildStatesGrid();
 fetchWeather(DEFAULT_QUERY);
