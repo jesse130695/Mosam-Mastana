@@ -743,8 +743,8 @@ input[type='date'].field { color-scheme: dark; }
 .trip-days { display: flex; flex-direction: column; gap: 10px; }
 .trip-day {
   display: grid;
-  grid-template-columns: 118px 44px 1fr auto;
-  gap: 12px;
+  grid-template-columns: 118px auto 1fr;
+  gap: 14px;
   align-items: center;
   background: var(--surface);
   border: 1px solid var(--line);
