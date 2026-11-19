@@ -105,9 +105,16 @@ let mapMarker = null;
 let mapLabel = null;
 
 function initMap() {
-  if (map || typeof window.L === 'undefined') return; // Leaflet CDN failed → note explains fallback
+  const host = document.getElementById('map');
+  if (map || !host || typeof window.L === 'undefined') return; // Leaflet CDN failed → note explains fallback
+  // A revived page can restore the old map DOM with a fresh script context.
+  // Clear it so the previous screen's map can never be mounted twice.
+  if (host._leaflet_id || host.childElementCount > 0) {
+    host.innerHTML = '';
+    if (host._leaflet_id) delete host._leaflet_id;
+  }
   try {
-    map = window.L.map('map', { zoomControl: true, attributionControl: true }).setView([20.59, 78.96], 4);
+    map = window.L.map(host, { zoomControl: true, attributionControl: true }).setView([20.59, 78.96], 4);
     window.L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 18,
       attribution: '&copy; OpenStreetMap contributors',
@@ -135,6 +142,31 @@ function updateMap(location) {
   mapLabel.setContent(location.name || 'Selected location');
   map.setView(pos, 9, { animate: true });
 }
+
+/* The map belongs to the dashboard screen only. Tear it down when this
+   screen is left (so no map from the previous screen can remain), and
+   remount it when the browser restores this page on back/forward. */
+function destroyMap() {
+  const host = document.getElementById('map');
+  if (map) {
+    try { map.remove(); } catch { /* already detached */ }
+  }
+  map = null;
+  mapMarker = null;
+  mapLabel = null;
+  if (host) {
+    host.innerHTML = '';
+    if (host._leaflet_id) delete host._leaflet_id;
+  }
+}
+
+window.addEventListener('pagehide', destroyMap);
+window.addEventListener('pageshow', (event) => {
+  if (!event.persisted) return; // initial load is handled at boot
+  destroyMap();
+  initMap();
+  if (lastData) updateMap(lastData.location);
+});
 
 /* ---------------- State ---------------- */
 let lang = 'hi';
