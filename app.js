@@ -156,6 +156,7 @@ function destroyMap() {
   mapLabel = null;
   if (host) {
     host.innerHTML = '';
+    host.className = ''; // drop Leaflet's container classes too
     if (host._leaflet_id) delete host._leaflet_id;
   }
 }
